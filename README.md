@@ -1,19 +1,39 @@
-# همّة — Himmah
+import 'package:flutter/material.dart';
 
-نسخة MVP لتطبيق عربي للصحة واللياقة مبنية باستخدام Flutter.
+import '../core/app_theme.dart';
 
-## الوظائف الحالية
-- دخول محلي بالاسم.
-- لوحة يومية للسعرات والبروتين والماء والخطوات.
-- إضافة وحذف الوجبات.
-- تسجيل التمارين.
-- تحديث الوزن ومتابعة الهدف.
-- واجهة عربية RTL.
+class SectionTitle extends StatelessWidget {
+  const SectionTitle({
+    super.key,
+    required this.title,
+    this.action,
+    this.onTap,
+  });
 
-## التشغيل
-```bash
-flutter pub get
-flutter run
-```
+  final String title;
+  final String? action;
+  final VoidCallback? onTap;
 
-> هذه النسخة لا تستخدم خادماً خارجياً بعد. Firebase وربط Apple Health / Health Connect ضمن المرحلة التالية.
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            title,
+            style: const TextStyle(
+              fontSize: 19,
+              fontWeight: FontWeight.w800,
+              color: AppColors.text,
+            ),
+          ),
+        ),
+        if (action != null)
+          TextButton(
+            onPressed: onTap,
+            child: Text(action!),
+          ),
+      ],
+    );
+  }
+}
