@@ -1,39 +1,34 @@
 workflows:
-  himmah-ios-test:
-    name: Himmah iOS Test Build
+  android:
+    name: Himmah Android APK
     max_build_duration: 60
+    instance_type: mac_mini_m2
+    environment:
+      flutter: stable
+    scripts:
+      - name: Generate native projects
+        script: flutter create --platforms=android,ios --org com.himmah --project-name himmah .
+      - name: Install packages
+        script: flutter pub get
+      - name: Build Android APK
+        script: flutter build apk --release
+    artifacts:
+      - build/app/outputs/flutter-apk/app-release.apk
+
+  ios-unsigned:
+    name: Himmah iOS unsigned
+    max_build_duration: 60
+    instance_type: mac_mini_m2
     environment:
       flutter: stable
       xcode: latest
       cocoapods: default
     scripts:
-      - name: Generate iOS and Android platform files
-        script: |
-          flutter create --platforms=ios,android --org com.himmah --project-name himmah .
-      - name: Get packages
+      - name: Generate native projects
+        script: flutter create --platforms=android,ios --org com.himmah --project-name himmah .
+      - name: Install packages
         script: flutter pub get
-      - name: Analyze
-        script: flutter analyze
       - name: Build unsigned iOS app
         script: flutter build ios --release --no-codesign
     artifacts:
       - build/ios/iphoneos/Runner.app
-      - flutter_drive.log
-
-  himmah-android-apk:
-    name: Himmah Android APK
-    max_build_duration: 60
-    environment:
-      flutter: stable
-    scripts:
-      - name: Generate iOS and Android platform files
-        script: |
-          flutter create --platforms=ios,android --org com.himmah --project-name himmah .
-      - name: Get packages
-        script: flutter pub get
-      - name: Analyze
-        script: flutter analyze
-      - name: Build APK
-        script: flutter build apk --release
-    artifacts:
-      - build/app/outputs/flutter-apk/app-release.apk

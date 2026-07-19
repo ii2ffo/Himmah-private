@@ -1,29 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-
 import 'core/app_theme.dart';
 import 'state/app_state.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/app_shell.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
     statusBarColor: Colors.transparent,
     statusBarIconBrightness: Brightness.dark,
   ));
-  runApp(const HimmahApp());
+  final state = AppState();
+  await state.initialize();
+  runApp(HimmahApp(state: state));
 }
 
-class HimmahApp extends StatefulWidget {
-  const HimmahApp({super.key});
-
-  @override
-  State<HimmahApp> createState() => _HimmahAppState();
-}
-
-class _HimmahAppState extends State<HimmahApp> {
-  final AppState state = AppState();
+class HimmahApp extends StatelessWidget {
+  const HimmahApp({super.key, required this.state});
+  final AppState state;
 
   @override
   Widget build(BuildContext context) {
@@ -38,9 +33,7 @@ class _HimmahAppState extends State<HimmahApp> {
           textDirection: TextDirection.rtl,
           child: AnimatedBuilder(
             animation: state,
-            builder: (_, __) => state.isLoggedIn
-                ? const AppShell()
-                : const LoginScreen(),
+            builder: (_, __) => state.isLoggedIn ? const AppShell() : const LoginScreen(),
           ),
         ),
       ),

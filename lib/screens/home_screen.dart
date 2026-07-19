@@ -7,6 +7,35 @@ import '../widgets/stat_tile.dart';
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
+  Future<void> _editSteps(BuildContext context, AppState state) async {
+    final controller = TextEditingController(text: state.steps.toString());
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => Directionality(
+        textDirection: TextDirection.rtl,
+        child: AlertDialog(
+          title: const Text('تحديث الخطوات'),
+          content: TextField(
+            controller: controller,
+            keyboardType: TextInputType.number,
+            decoration: const InputDecoration(suffixText: 'خطوة'),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('إلغاء')),
+            FilledButton(
+              onPressed: () {
+                final value = int.tryParse(controller.text);
+                if (value != null) state.updateSteps(value);
+                Navigator.pop(dialogContext);
+              },
+              child: const Text('حفظ'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = AppStateScope.of(context);
@@ -20,7 +49,7 @@ class HomeScreen extends StatelessWidget {
           _CalorieCard(state: state, progress: progress),
           const SizedBox(height: 14),
           Row(children: [
-            Expanded(child: StatTile(icon: Icons.directions_walk, label: 'الخطوات', value: '${state.steps}', unit: 'خطوة')),
+            Expanded(child: InkWell(onTap: () => _editSteps(context, state), borderRadius: BorderRadius.circular(22), child: StatTile(icon: Icons.directions_walk, label: 'الخطوات', value: '${state.steps}', unit: 'خطوة'))),
             const SizedBox(width: 12),
             Expanded(child: InkWell(
               onTap: () => state.addWater(250),
@@ -29,7 +58,7 @@ class HomeScreen extends StatelessWidget {
             )),
           ]),
           const SizedBox(height: 8),
-          const Text('اضغط بطاقة الماء لإضافة 250 مل', style: TextStyle(color: AppColors.muted, fontSize: 11)),
+          const Text('اضغط الخطوات لتحديثها، واضغط الماء لإضافة 250 مل', style: TextStyle(color: AppColors.muted, fontSize: 11)),
           const SizedBox(height: 22),
           const SectionTitle(title: 'ملخص اليوم'),
           const SizedBox(height: 10),
@@ -94,9 +123,9 @@ class _CalorieCard extends StatelessWidget {
       Row(children: [
         Expanded(child: _Macro(label: 'بروتين', value: '${state.proteinConsumed} / ${state.proteinGoal} جم', progress: (state.proteinConsumed / state.proteinGoal).clamp(0, 1))),
         const SizedBox(width: 12),
-        const Expanded(child: _Macro(label: 'كارب', value: '180 / 250 جم', progress: .72)),
+        Expanded(child: _Macro(label: 'كارب', value: '${state.carbsConsumed} / ${state.carbGoal} جم', progress: (state.carbsConsumed / state.carbGoal).clamp(0, 1))),
         const SizedBox(width: 12),
-        const Expanded(child: _Macro(label: 'دهون', value: '45 / 70 جم', progress: .64)),
+        Expanded(child: _Macro(label: 'دهون', value: '${state.fatConsumed} / ${state.fatGoal} جم', progress: (state.fatConsumed / state.fatGoal).clamp(0, 1))),
       ]),
     ]),
   );

@@ -1,9 +1,7 @@
 # iOS platform
 
-This folder is completed automatically by Flutter before the first iOS build.
-Run from the project root on macOS or Codemagic:
+Codemagic generates the complete iOS runner before building with:
 
 ```bash
-flutter create --platforms=ios --org com.himmah --project-name himmah .
-flutter build ios --release --no-codesign
+flutter create --platforms=android,ios --org com.himmah --project-name himmah .
 ```
