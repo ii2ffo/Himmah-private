@@ -1,68 +1,93 @@
 import 'package:flutter/material.dart';
-import '../../core/app_theme.dart';
-import '../../state/app_state.dart';
 
-class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+import '../state/app_state.dart';
+
+class GoalsScreen extends StatefulWidget {
+  const GoalsScreen({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  State<GoalsScreen> createState() => _GoalsScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
-  final nameController = TextEditingController(text: 'محمد');
+class _GoalsScreenState extends State<GoalsScreen> {
+  late final TextEditingController calories;
+  late final TextEditingController protein;
+  late final TextEditingController target;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final state = AppStateScope.of(context);
+    calories = TextEditingController(text: state.calorieGoal.toString());
+    protein = TextEditingController(text: state.proteinGoal.toString());
+    target = TextEditingController(text: state.targetWeight.toStringAsFixed(1));
+  }
 
   @override
   void dispose() {
-    nameController.dispose();
+    calories.dispose();
+    protein.dispose();
+    target.dispose();
     super.dispose();
+  }
+
+  void _save() {
+    final c = int.tryParse(calories.text);
+    final p = int.tryParse(protein.text);
+    final t = double.tryParse(target.text);
+    if (c == null || p == null || t == null || c < 1000 || p < 30 || t < 35) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('تأكد من إدخال أهداف صحيحة')),
+      );
+      return;
+    }
+    AppStateScope.of(context).updateGoals(calories: c, protein: p, target: t);
+    Navigator.pop(context);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const Spacer(),
-              Container(
-                width: 88,
-                height: 88,
-                decoration: BoxDecoration(
-                  color: AppColors.darkGreen,
-                  borderRadius: BorderRadius.circular(28),
-                ),
-                child: const Icon(Icons.bolt_rounded, size: 52, color: AppColors.lime),
-              ),
-              const SizedBox(height: 24),
-              const Text('همّة', textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 42, fontWeight: FontWeight.w900)),
-              const SizedBox(height: 8),
-              const Text('خطتك الصحية في مكان واحد', textAlign: TextAlign.center,
-                  style: TextStyle(color: AppColors.muted, fontSize: 16)),
-              const Spacer(),
-              TextField(
-                controller: nameController,
-                decoration: const InputDecoration(
-                  labelText: 'اسمك',
-                  prefixIcon: Icon(Icons.person_outline),
-                ),
-              ),
-              const SizedBox(height: 14),
-              FilledButton(
-                onPressed: () => AppStateScope.of(context).login(nameController.text),
-                style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(56)),
-                child: const Text('ابدأ الآن', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
-              ),
-              const SizedBox(height: 10),
-              const Text('بالاستمرار أنت توافق على الشروط وسياسة الخصوصية',
-                  textAlign: TextAlign.center, style: TextStyle(fontSize: 11, color: AppColors.muted)),
-            ],
+      appBar: AppBar(title: const Text('تعديل الأهداف')),
+      body: ListView(
+        padding: const EdgeInsets.all(20),
+        children: [
+          TextField(
+            controller: calories,
+            keyboardType: TextInputType.number,
+            decoration: const InputDecoration(
+              labelText: 'هدف السعرات اليومي',
+              suffixText: 'سعرة',
+              prefixIcon: Icon(Icons.local_fire_department_outlined),
+            ),
           ),
-        ),
+          const SizedBox(height: 14),
+          TextField(
+            controller: protein,
+            keyboardType: TextInputType.number,
+            decoration: const InputDecoration(
+              labelText: 'هدف البروتين اليومي',
+              suffixText: 'جم',
+              prefixIcon: Icon(Icons.egg_alt_outlined),
+            ),
+          ),
+          const SizedBox(height: 14),
+          TextField(
+            controller: target,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            decoration: const InputDecoration(
+              labelText: 'الوزن المستهدف',
+              suffixText: 'كجم',
+              prefixIcon: Icon(Icons.flag_outlined),
+            ),
+          ),
+          const SizedBox(height: 24),
+          FilledButton.icon(
+            onPressed: _save,
+            icon: const Icon(Icons.save_outlined),
+            label: const Text('حفظ الأهداف'),
+          ),
+        ],
       ),
     );
   }

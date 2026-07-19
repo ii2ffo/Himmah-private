@@ -1,126 +1,110 @@
 import 'package:flutter/material.dart';
 import '../core/app_theme.dart';
 import '../state/app_state.dart';
-import '../widgets/section_title.dart';
-import '../widgets/stat_tile.dart';
+import 'food_search_screen.dart';
 
-class HomeScreen extends StatelessWidget {
-  const HomeScreen({super.key});
+class NutritionScreen extends StatelessWidget {
+  const NutritionScreen({super.key});
+
+  Future<void> _addFoodManually(BuildContext context) async {
+    final name = TextEditingController();
+    final calories = TextEditingController();
+    final protein = TextEditingController();
+    final carbs = TextEditingController();
+    final fat = TextEditingController();
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (sheetContext) => Directionality(
+        textDirection: TextDirection.rtl,
+        child: Padding(
+          padding: EdgeInsets.fromLTRB(20, 8, 20, MediaQuery.of(sheetContext).viewInsets.bottom + 24),
+          child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+            const Text('إضافة طعام يدويًا', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900)),
+            const SizedBox(height: 16),
+            TextField(controller: name, decoration: const InputDecoration(labelText: 'اسم الطعام')),
+            const SizedBox(height: 12),
+            TextField(controller: calories, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'السعرات')),
+            const SizedBox(height: 12),
+            TextField(controller: protein, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'البروتين بالجرام')),
+            const SizedBox(height: 12),
+            Row(children: [
+              Expanded(child: TextField(controller: carbs, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'الكارب'))),
+              const SizedBox(width: 10),
+              Expanded(child: TextField(controller: fat, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'الدهون'))),
+            ]),
+            const SizedBox(height: 18),
+            FilledButton(onPressed: () {
+              final c = int.tryParse(calories.text) ?? 0;
+              final p = int.tryParse(protein.text) ?? 0;
+              final cb = int.tryParse(carbs.text) ?? 0;
+              final f = int.tryParse(fat.text) ?? 0;
+              if (name.text.trim().isNotEmpty && c > 0) {
+                AppStateScope.of(context).addFood(name.text.trim(), c, p, carbs: cb, fat: f);
+                Navigator.pop(sheetContext);
+              }
+            }, child: const Text('حفظ')),
+          ]),
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     final state = AppStateScope.of(context);
-    final progress = (state.caloriesConsumed / state.calorieGoal).clamp(0.0, 1.0);
-    return SafeArea(
-      child: ListView(
-        padding: const EdgeInsets.fromLTRB(18, 16, 18, 120),
+    return Scaffold(
+      appBar: AppBar(title: const Text('التغذية'), actions: [
+        IconButton(onPressed: state.clearFoods, tooltip: 'بدء يوم جديد', icon: const Icon(Icons.refresh)),
+      ]),
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(18, 10, 18, 120),
         children: [
-          _Header(name: state.name),
-          const SizedBox(height: 18),
-          _CalorieCard(state: state, progress: progress),
+          Card(child: Padding(padding: const EdgeInsets.all(18), child: Row(mainAxisAlignment: MainAxisAlignment.spaceAround, children: [
+            _Value(label: 'السعرات', value: '${state.caloriesConsumed}'),
+            _Value(label: 'البروتين', value: '${state.proteinConsumed} جم'),
+            _Value(label: 'المتبقي', value: '${state.caloriesRemaining}'),
+          ]))),
           const SizedBox(height: 14),
+          FilledButton.icon(
+            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FoodSearchScreen())),
+            icon: const Icon(Icons.search),
+            label: const Text('ابحث في قاعدة الأطعمة'),
+          ),
+          const SizedBox(height: 10),
+          OutlinedButton.icon(onPressed: () => _addFoodManually(context), icon: const Icon(Icons.edit_outlined), label: const Text('إضافة يدوية')),
+          const SizedBox(height: 18),
           Row(children: [
-            Expanded(child: StatTile(icon: Icons.directions_walk, label: 'الخطوات', value: '${state.steps}', unit: 'خطوة')),
-            const SizedBox(width: 12),
-            Expanded(child: InkWell(
-              onTap: () => state.addWater(250),
-              borderRadius: BorderRadius.circular(22),
-              child: StatTile(icon: Icons.water_drop_outlined, label: 'الماء', value: (state.waterMl / 1000).toStringAsFixed(2), unit: 'لتر'),
-            )),
+            const Expanded(child: Text('سجل اليوم', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w900))),
+            Text('${state.foods.length} عناصر', style: const TextStyle(color: AppColors.muted)),
           ]),
           const SizedBox(height: 8),
-          const Text('اضغط بطاقة الماء لإضافة 250 مل', style: TextStyle(color: AppColors.muted, fontSize: 11)),
-          const SizedBox(height: 22),
-          const SectionTitle(title: 'ملخص اليوم'),
-          const SizedBox(height: 10),
-          Card(child: Padding(
-            padding: const EdgeInsets.all(18),
-            child: Column(children: [
-              _SummaryRow(icon: Icons.restaurant, title: 'التغذية', subtitle: '${state.foods.length} عناصر مسجلة', trailing: '${state.caloriesConsumed} سعرة'),
-              const Divider(height: 28),
-              _SummaryRow(icon: Icons.fitness_center, title: 'التمرين', subtitle: state.workouts.isEmpty ? 'لم تسجل تمريناً' : state.workouts.last.name, trailing: state.workouts.isEmpty ? '--' : '${state.workouts.last.minutes} دقيقة'),
-              const Divider(height: 28),
-              _SummaryRow(icon: Icons.monitor_weight_outlined, title: 'الوزن', subtitle: 'آخر تسجيل', trailing: '${state.weight.toStringAsFixed(1)} كجم'),
-            ]),
-          )),
-          const SizedBox(height: 22),
-          const SectionTitle(title: 'هدف هذا الأسبوع'),
-          const SizedBox(height: 10),
-          const _WeeklyGoal(),
+          if (state.foods.isEmpty)
+            const Card(child: Padding(padding: EdgeInsets.all(28), child: Center(child: Text('ما سجلت أي طعام اليوم')))),
+          ...List.generate(state.foods.length, (index) {
+            final item = state.foods[index];
+            return Dismissible(
+              key: ValueKey('${item.name}-$index'),
+              direction: DismissDirection.endToStart,
+              background: Container(alignment: Alignment.centerLeft, padding: const EdgeInsets.all(20), color: Colors.red.shade100, child: const Icon(Icons.delete)),
+              onDismissed: (_) => state.removeFood(index),
+              child: Card(child: ListTile(
+                leading: const CircleAvatar(backgroundColor: Color(0xFFEAF6EF), child: Icon(Icons.restaurant, color: AppColors.primary)),
+                title: Text(item.name, style: const TextStyle(fontWeight: FontWeight.w800)),
+                subtitle: Text('${item.protein} بروتين • ${item.carbs} كارب • ${item.fat} دهون'),
+                trailing: Text('${item.calories} سعرة', style: const TextStyle(fontWeight: FontWeight.w700)),
+              )),
+            );
+          }),
         ],
       ),
     );
   }
 }
 
-class _Header extends StatelessWidget {
-  const _Header({required this.name});
-  final String name;
-  @override
-  Widget build(BuildContext context) => Row(children: [
-    const CircleAvatar(radius: 24, backgroundColor: AppColors.darkGreen, child: Icon(Icons.person, color: Colors.white)),
-    const SizedBox(width: 12),
-    Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text('مرحباً $name 👋', style: const TextStyle(fontSize: 21, fontWeight: FontWeight.w800)),
-      const SizedBox(height: 3),
-      const Text('جاهز تبدأ يومك بقوة؟', style: TextStyle(color: AppColors.muted)),
-    ])),
-    IconButton.filledTonal(onPressed: () {}, icon: const Icon(Icons.notifications_none)),
-  ]);
-}
-
-class _CalorieCard extends StatelessWidget {
-  const _CalorieCard({required this.state, required this.progress});
-  final AppState state;
-  final double progress;
-  @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.all(20),
-    decoration: BoxDecoration(borderRadius: BorderRadius.circular(28), gradient: const LinearGradient(colors: [AppColors.darkGreen, Color(0xFF0C5C3C)])),
-    child: Column(children: [
-      Row(children: [
-        const Expanded(child: Text('السعرات اليومية', style: TextStyle(color: Colors.white70, fontSize: 16))),
-        Text('${(progress * 100).round()}%', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
-      ]),
-      const SizedBox(height: 12),
-      Row(mainAxisAlignment: MainAxisAlignment.spaceAround, children: [
-        _Metric(label: 'المتبقي', value: '${state.caloriesRemaining}'),
-        _Metric(label: 'المستهلك', value: '${state.caloriesConsumed}', large: true),
-        _Metric(label: 'الهدف', value: '${state.calorieGoal}'),
-      ]),
-      const SizedBox(height: 18),
-      ClipRRect(borderRadius: BorderRadius.circular(20), child: LinearProgressIndicator(value: progress, minHeight: 10, backgroundColor: Colors.white24, color: AppColors.lime)),
-      const SizedBox(height: 16),
-      Row(children: [
-        Expanded(child: _Macro(label: 'بروتين', value: '${state.proteinConsumed} / ${state.proteinGoal} جم', progress: (state.proteinConsumed / state.proteinGoal).clamp(0, 1))),
-        const SizedBox(width: 12),
-        const Expanded(child: _Macro(label: 'كارب', value: '180 / 250 جم', progress: .72)),
-        const SizedBox(width: 12),
-        const Expanded(child: _Macro(label: 'دهون', value: '45 / 70 جم', progress: .64)),
-      ]),
-    ]),
-  );
-}
-
-class _Metric extends StatelessWidget {
-  const _Metric({required this.label, required this.value, this.large = false});
-  final String label, value; final bool large;
-  @override Widget build(BuildContext context) => Column(children: [Text(value, style: TextStyle(color: Colors.white, fontSize: large ? 34 : 21, fontWeight: FontWeight.w900)), Text(label, style: const TextStyle(color: Colors.white70))]);
-}
-
-class _Macro extends StatelessWidget {
-  const _Macro({required this.label, required this.value, required this.progress});
-  final String label, value; final double progress;
-  @override Widget build(BuildContext context) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700)), const SizedBox(height: 5), Text(value, style: const TextStyle(color: Colors.white70, fontSize: 11)), const SizedBox(height: 7), LinearProgressIndicator(value: progress, minHeight: 5, backgroundColor: Colors.white24, color: AppColors.lime)]);
-}
-
-class _SummaryRow extends StatelessWidget {
-  const _SummaryRow({required this.icon, required this.title, required this.subtitle, required this.trailing});
-  final IconData icon; final String title, subtitle, trailing;
-  @override Widget build(BuildContext context) => Row(children: [CircleAvatar(backgroundColor: AppColors.primary.withValues(alpha: .1), child: Icon(icon, color: AppColors.primary)), const SizedBox(width: 12), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(title, style: const TextStyle(fontWeight: FontWeight.w700)), Text(subtitle, style: const TextStyle(color: AppColors.muted, fontSize: 12))])), Text(trailing, style: const TextStyle(fontWeight: FontWeight.w700))]);
-}
-
-class _WeeklyGoal extends StatelessWidget {
-  const _WeeklyGoal();
-  @override Widget build(BuildContext context) => const Card(child: Padding(padding: EdgeInsets.all(18), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('نزول 0.5 كجم', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)), SizedBox(height: 6), Text('استمر على متوسط عجز 500 سعرة يومياً', style: TextStyle(color: AppColors.muted)), SizedBox(height: 14), LinearProgressIndicator(value: .62, minHeight: 9, borderRadius: BorderRadius.all(Radius.circular(20))), SizedBox(height: 8), Text('تم إنجاز 62% من الهدف', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700))])));
+class _Value extends StatelessWidget {
+  const _Value({required this.label, required this.value});
+  final String label, value;
+  @override Widget build(BuildContext context) => Column(children: [Text(value, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900)), Text(label, style: const TextStyle(color: AppColors.muted))]);
 }

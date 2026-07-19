@@ -1,100 +1,116 @@
 import 'package:flutter/material.dart';
 import '../core/app_theme.dart';
 import '../state/app_state.dart';
-import 'food_search_screen.dart';
 
-class NutritionScreen extends StatelessWidget {
-  const NutritionScreen({super.key});
+class WorkoutsScreen extends StatelessWidget {
+  const WorkoutsScreen({super.key});
 
-  Future<void> _addFoodManually(BuildContext context) async {
-    final name = TextEditingController();
-    final calories = TextEditingController();
-    final protein = TextEditingController();
-    await showModalBottomSheet<void>(
+  Future<void> _addWorkout(BuildContext context) async {
+    final state = AppStateScope.of(context);
+    final items = ['Push - دفع', 'Pull - سحب', 'Legs - أرجل', 'Upper - علوي', 'Lower - سفلي', 'مشي', 'كارديو'];
+    final selected = await showModalBottomSheet<String>(
       context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
       builder: (sheetContext) => Directionality(
         textDirection: TextDirection.rtl,
-        child: Padding(
-          padding: EdgeInsets.fromLTRB(20, 8, 20, MediaQuery.of(sheetContext).viewInsets.bottom + 24),
-          child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-            const Text('إضافة طعام يدويًا', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900)),
-            const SizedBox(height: 16),
-            TextField(controller: name, decoration: const InputDecoration(labelText: 'اسم الطعام')),
-            const SizedBox(height: 12),
-            TextField(controller: calories, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'السعرات')),
-            const SizedBox(height: 12),
-            TextField(controller: protein, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'البروتين بالجرام')),
-            const SizedBox(height: 18),
-            FilledButton(onPressed: () {
-              final c = int.tryParse(calories.text) ?? 0;
-              final p = int.tryParse(protein.text) ?? 0;
-              if (name.text.trim().isNotEmpty && c > 0) {
-                AppStateScope.of(context).addFood(name.text.trim(), c, p);
-                Navigator.pop(sheetContext);
-              }
-            }, child: const Text('حفظ')),
-          ]),
+        child: SafeArea(
+          child: ListView(
+            shrinkWrap: true,
+            children: [
+              const ListTile(title: Text('اختر التمرين', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900))),
+              ...items.map((e) => ListTile(
+                    leading: const Icon(Icons.fitness_center),
+                    title: Text(e),
+                    onTap: () => Navigator.pop(sheetContext, e),
+                  )),
+            ],
+          ),
         ),
       ),
     );
+    if (selected == null || !context.mounted) return;
+
+    final controller = TextEditingController(text: '60');
+    final minutes = await showDialog<int>(
+      context: context,
+      builder: (dialogContext) => Directionality(
+        textDirection: TextDirection.rtl,
+        child: AlertDialog(
+          title: Text(selected),
+          content: TextField(
+            controller: controller,
+            keyboardType: TextInputType.number,
+            decoration: const InputDecoration(labelText: 'مدة التمرين', suffixText: 'دقيقة'),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('إلغاء')),
+            FilledButton(
+              onPressed: () => Navigator.pop(dialogContext, int.tryParse(controller.text)),
+              child: const Text('حفظ'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (minutes != null && minutes > 0) state.addWorkout(selected, minutes);
   }
 
   @override
   Widget build(BuildContext context) {
     final state = AppStateScope.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('التغذية'), actions: [
-        IconButton(onPressed: state.clearFoods, tooltip: 'بدء يوم جديد', icon: const Icon(Icons.refresh)),
-      ]),
+      appBar: AppBar(title: const Text('التمارين')),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => _addWorkout(context),
+        icon: const Icon(Icons.add),
+        label: const Text('سجل تمرين'),
+      ),
       body: ListView(
-        padding: const EdgeInsets.fromLTRB(18, 10, 18, 120),
+        padding: const EdgeInsets.fromLTRB(18, 10, 18, 110),
         children: [
-          Card(child: Padding(padding: const EdgeInsets.all(18), child: Row(mainAxisAlignment: MainAxisAlignment.spaceAround, children: [
-            _Value(label: 'السعرات', value: '${state.caloriesConsumed}'),
-            _Value(label: 'البروتين', value: '${state.proteinConsumed} جم'),
-            _Value(label: 'المتبقي', value: '${state.caloriesRemaining}'),
-          ]))),
-          const SizedBox(height: 14),
-          FilledButton.icon(
-            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FoodSearchScreen())),
-            icon: const Icon(Icons.search),
-            label: const Text('ابحث في قاعدة الأطعمة'),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(18),
+              child: Row(children: [
+                const Icon(Icons.local_fire_department, color: AppColors.primary, size: 34),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    const Text('خطة الأسبوع', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18)),
+                    const Text('Push • Pull • Legs • راحة • Upper • Lower', style: TextStyle(color: AppColors.muted)),
+                    const SizedBox(height: 6),
+                    Text('تمرين اليوم: ${state.workoutMinutesToday} دقيقة', style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700)),
+                  ]),
+                ),
+              ]),
+            ),
           ),
-          const SizedBox(height: 10),
-          OutlinedButton.icon(onPressed: () => _addFoodManually(context), icon: const Icon(Icons.edit_outlined), label: const Text('إضافة يدوية')),
-          const SizedBox(height: 18),
-          Row(children: [
-            const Expanded(child: Text('سجل اليوم', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w900))),
-            Text('${state.foods.length} عناصر', style: const TextStyle(color: AppColors.muted)),
-          ]),
-          const SizedBox(height: 8),
-          if (state.foods.isEmpty)
-            const Card(child: Padding(padding: EdgeInsets.all(28), child: Center(child: Text('ما سجلت أي طعام اليوم')))),
-          ...List.generate(state.foods.length, (index) {
-            final item = state.foods[index];
-            return Dismissible(
-              key: ValueKey('${item.name}-$index'),
-              direction: DismissDirection.endToStart,
-              background: Container(alignment: Alignment.centerLeft, padding: const EdgeInsets.all(20), color: Colors.red.shade100, child: const Icon(Icons.delete)),
-              onDismissed: (_) => state.removeFood(index),
-              child: Card(child: ListTile(
-                leading: const CircleAvatar(backgroundColor: Color(0xFFEAF6EF), child: Icon(Icons.restaurant, color: AppColors.primary)),
-                title: Text(item.name, style: const TextStyle(fontWeight: FontWeight.w800)),
-                subtitle: Text('${item.protein} جم بروتين'),
-                trailing: Text('${item.calories} سعرة', style: const TextStyle(fontWeight: FontWeight.w700)),
+          const SizedBox(height: 12),
+          if (state.workouts.isEmpty)
+            const Padding(
+              padding: EdgeInsets.only(top: 50),
+              child: Center(child: Text('لا توجد تمارين مسجلة بعد', style: TextStyle(color: AppColors.muted))),
+            ),
+          ...state.workouts.reversed.map((workout) => Dismissible(
+                key: ValueKey('${workout.date.toIso8601String()}-${workout.name}'),
+                direction: DismissDirection.endToStart,
+                background: Container(
+                  alignment: Alignment.centerLeft,
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  decoration: BoxDecoration(color: Colors.red.shade100, borderRadius: BorderRadius.circular(22)),
+                  child: const Icon(Icons.delete_outline, color: Colors.red),
+                ),
+                onDismissed: (_) => state.removeWorkout(workout),
+                child: Card(
+                  child: ListTile(
+                    leading: const CircleAvatar(child: Icon(Icons.check)),
+                    title: Text(workout.name, style: const TextStyle(fontWeight: FontWeight.w800)),
+                    subtitle: Text('${workout.date.year}/${workout.date.month}/${workout.date.day}'),
+                    trailing: Text('${workout.minutes} دقيقة'),
+                  ),
+                ),
               )),
-            );
-          }),
         ],
       ),
     );
   }
-}
-
-class _Value extends StatelessWidget {
-  const _Value({required this.label, required this.value});
-  final String label, value;
-  @override Widget build(BuildContext context) => Column(children: [Text(value, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900)), Text(label, style: const TextStyle(color: AppColors.muted))]);
 }
